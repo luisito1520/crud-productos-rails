@@ -1,0 +1,6 @@
+<% content_for :title, "Editar producto" %>
+
+<h1>Editar producto #<%= @product.id %></h1>
+<div class="card">
+  <%= render "form", product: @product %>
+</div>

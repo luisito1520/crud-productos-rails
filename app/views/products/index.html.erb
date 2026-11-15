@@ -1,0 +1,45 @@
+<% content_for :title, "Productos" %>
+
+<div class="toolbar">
+  <h1>Productos</h1>
+  <%= link_to "+ Nuevo producto", new_product_path, class: "btn btn-primary" %>
+</div>
+
+<div class="card">
+  <% if @products.empty? %>
+    <p class="empty muted">No hay productos registrados todavía.</p>
+  <% else %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th class="num">Precio</th>
+            <th class="num">Cantidad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @products.each do |product| %>
+            <tr>
+              <td class="muted"><%= product.id %></td>
+              <td><%= link_to product.nombre, product_path(product.id) %></td>
+              <td class="muted"><%= truncate(product.descripcion, length: 60) %></td>
+              <td class="num"><%= precio(product.precio) %></td>
+              <td class="num"><%= product.cantidad %></td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Editar", edit_product_path(product.id), class: "btn" %>
+                  <%= button_to "Eliminar", product_path(product.id), method: :delete, class: "btn btn-danger",
+                        form: { onsubmit: "return confirm('¿Eliminar este producto?')" } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

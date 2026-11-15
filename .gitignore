@@ -1,0 +1,10 @@
+/.bundle
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/storage/*.json
+/coverage/
+/.scannerwork/
+# Nunca subir la llave maestra de credenciales
+/config/master.key

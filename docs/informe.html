@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe Guía 4 - CRUD de Productos</title>
+<style>
+  @page { size: Letter; margin: 2.2cm 2.2cm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #1a1a1a; }
+  h1 { font-size: 18pt; margin: 0 0 .4em; }
+  h2 { font-size: 14pt; border-bottom: 2px solid #2b3a8c; padding-bottom: 3px; margin-top: 1.4em; color: #2b3a8c; }
+  h3 { font-size: 12pt; margin-bottom: .3em; }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; background: #f1f3f7; padding: 0 3px; border-radius: 3px; }
+  pre { font-family: Consolas, monospace; font-size: 8.8pt; background: #f4f5f8; border: 1px solid #d9dce5; padding: 8px 10px; border-radius: 4px; white-space: pre-wrap; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: .6em 0; font-size: 10pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #b9bfcc; padding: 4px 7px; text-align: left; vertical-align: top; }
+  th { background: #e6e9f2; }
+  .page { page-break-after: always; }
+  .cover { text-align: center; padding-top: 3cm; }
+  .cover h1 { font-size: 22pt; margin-top: 1.5cm; }
+  .cover .sub { font-size: 13pt; margin: .3em 0; }
+  .cover table { width: 70%; margin: 2cm auto 0; font-size: 11.5pt; }
+  .cover td:first-child { font-weight: 600; width: 40%; background: #f1f3f7; }
+  .todo { background: #fff4c2; padding: 0 4px; }
+  .box { border: 1px dashed #8a90a3; padding: 18px; text-align: center; color: #555; margin: .6em 0; }
+  .bib p { padding-left: 2em; text-indent: -2em; margin: .5em 0; }
+</style>
+</head>
+<body>
+
+<!-- ================= PORTADA ================= -->
+<section class="page cover">
+  <div class="sub">Institución Universitaria ITM</div>
+  <div class="sub">Facultad de Ingenierías</div>
+  <h1>Taller evaluativo – Guía de Trabajo No. 4</h1>
+  <div class="sub">CRUD para el registro de productos con Ruby on Rails, pruebas unitarias y SonarQube</div>
+  <table>
+    <tr><td>Asignatura</td><td>Aplicaciones y servicios web (580202009)</td></tr>
+    <tr><td>Estudiante</td><td>Luis Miguel Cardona</td></tr>
+    <tr><td>Programa</td><td>Tecnología en Desarrollo de Software</td></tr>
+    <tr><td>Docente</td><td>Jonathan Sánchez Giraldo</td></tr>
+    <tr><td>Repositorio</td><td>https://github.com/luisito1520/crud-productos-rails</td></tr>
+    <tr><td>Fecha</td><td>15 de noviembre de 2026</td></tr>
+  </table>
+  <p style="margin-top:2.5cm">Medellín, 2026</p>
+</section>
+
+<!-- ================= DESARROLLO ================= -->
+<section>
+<h2>Introducción</h2>
+<p>Este trabajo desarrolla una aplicación web que implementa las operaciones CRUD
+(Crear, Leer, Actualizar y Eliminar) sobre un registro de productos. Ofrece dos formas de uso
+sobre la misma lógica: <b>páginas HTML</b> (vistas) para usarla desde el navegador y una
+<b>API REST</b> que responde en JSON. Se eligió <b>Ruby</b> como
+lenguaje y <b>Ruby on Rails 8</b> como framework porque permite construir servicios web con poca
+configuración, trae integrado un sistema de pruebas (Minitest) y sigue el patrón
+Modelo–Vista–Controlador (MVC). Como almacenamiento se usa un archivo <b>JSON</b>, una de las
+opciones permitidas por la guía.</p>
+
+<h2>1. Configuración inicial y estructura del proyecto</h2>
+<p>Herramientas utilizadas: Ruby 3.3, Rails 8.1, Bundler, Minitest, SimpleCov, Git y SonarQube.</p>
+<p>El proyecto se generó sin base de datos (ActiveRecord desactivado), ya que la
+persistencia se hace en un archivo:</p>
+<pre>gem install rails
+rails new crud_productos --minimal --skip-active-record
+cd crud_productos
+bundle install</pre>
+<p>Estructura de archivos relevante:</p>
+<pre>crud_productos/
+├── app/
+│   ├── services/product_repository.rb       # ARCHIVO PRINCIPAL: lógica del CRUD
+│   ├── models/product.rb                    # Modelo Producto + validaciones
+│   ├── controllers/
+│   │   ├── products_controller.rb           # Páginas HTML
+│   │   └── api/products_controller.rb       # API REST JSON
+│   ├── views/products/                      # Vistas: index, show, new, edit, _form
+│   └── views/layouts/application.html.erb   # Plantilla general y estilos
+├── config/routes.rb                         # Rutas /products y /api/products
+├── config/locales/es.yml                    # Mensajes en español
+├── storage/products.json                    # Datos (se crea automáticamente)
+├── test/
+│   ├── services/product_repository_test.rb  # ARCHIVO DE PRUEBAS unitarias
+│   ├── controllers/products_controller_test.rb
+│   └── controllers/api/products_controller_test.rb
+├── sonar-project.properties                 # Configuración de SonarQube
+└── README.md</pre>
+<p>Se aplicó el patrón <b>MVC</b>: el <b>modelo</b> define qué es un producto válido, el
+<b>repositorio</b> contiene las operaciones CRUD y el acceso al archivo, los <b>controladores</b>
+reciben las peticiones y las <b>vistas</b> muestran el resultado. Los dos controladores (HTML y
+API) llaman al mismo repositorio, así la lógica no se repite y se puede probar sin levantar el
+servidor.</p>
+
+<h2>2. Implementación del CRUD de productos</h2>
+<h3>2.1 Modelo Producto</h3>
+<p>El producto tiene los campos exigidos por la guía. Se usa <code>ActiveModel</code> para
+tipar los atributos y validarlos:</p>
+<table>
+  <tr><th>Campo</th><th>Tipo</th><th>Regla</th></tr>
+  <tr><td>id</td><td>entero</td><td>Único, lo asigna el sistema (autoincremental, no se reutiliza)</td></tr>
+  <tr><td>nombre</td><td>texto</td><td>Obligatorio, máx. 100 caracteres</td></tr>
+  <tr><td>descripcion</td><td>texto</td><td>Opcional, máx. 500 caracteres</td></tr>
+  <tr><td>precio</td><td>decimal</td><td>Obligatorio, ≥ 0</td></tr>
+  <tr><td>cantidad</td><td>entero</td><td>Obligatorio, entero ≥ 0</td></tr>
+</table>
+<pre>class Product
+  include ActiveModel::Model
+  include ActiveModel::Attributes
+
+  attribute :id, :integer
+  attribute :nombre, :string
+  attribute :descripcion, :string
+  attribute :precio, :decimal
+  attribute :cantidad, :integer
+
+  validates :nombre, presence: true, length: { maximum: 100 }
+  validates :precio, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :cantidad, presence: true,
+                       numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+end</pre>
+
+<h3>2.2 Lógica CRUD (ProductRepository)</h3>
+<p>Los datos se guardan en <code>storage/products.json</code> con un contador
+<code>next_id</code> que garantiza ids únicos:</p>
+<pre>{
+  "next_id": 3,
+  "products": [
+    { "id": 1, "nombre": "Teclado", "descripcion": "Mecánico", "precio": 150000.0, "cantidad": 10 },
+    { "id": 2, "nombre": "Mouse", "descripcion": "Inalámbrico", "precio": 50000.0, "cantidad": 20 }
+  ]
+}</pre>
+<table>
+  <tr><th>Operación</th><th>Método</th><th>Comportamiento</th><th>Error</th></tr>
+  <tr><td>Crear</td><td><code>create(attrs)</code></td><td>Valida, asigna id y guarda</td><td><code>InvalidProduct</code></td></tr>
+  <tr><td>Leer todos</td><td><code>all</code></td><td>Devuelve la lista</td><td>–</td></tr>
+  <tr><td>Leer uno</td><td><code>find(id)</code></td><td>Busca por id</td><td><code>NotFound</code></td></tr>
+  <tr><td>Actualizar</td><td><code>update(id, attrs)</code></td><td>Cambia solo los campos enviados y valida</td><td><code>NotFound</code>, <code>InvalidProduct</code></td></tr>
+  <tr><td>Eliminar</td><td><code>delete(id)</code></td><td>Quita el producto del archivo</td><td><code>NotFound</code></td></tr>
+</table>
+<pre>def create(attrs)
+  product = Product.new(permitted(attrs))
+  raise InvalidProduct, product.errors unless product.valid?
+
+  write do |data|
+    product.id = data["next_id"]
+    data["next_id"] += 1
+    data["products"] &lt;&lt; product.to_h
+  end
+  product
+end
+
+def update(id, attrs)
+  product = nil
+  write do |data|
+    index = data["products"].index { |p| p["id"] == id.to_i }
+    raise NotFound, id unless index
+
+    product = Product.new(data["products"][index].merge(permitted(attrs)))
+    raise InvalidProduct, product.errors unless product.valid?
+
+    data["products"][index] = product.to_h
+  end
+  product
+end</pre>
+<p>El método <code>write</code> lee el archivo, aplica el cambio y lo guarda dentro de un
+<code>Mutex</code>, para que dos peticiones simultáneas no se sobrescriban. Si ocurre un error
+(por ejemplo, el producto no existe), el archivo no se modifica.</p>
+
+<h3>2.3 Vistas (páginas HTML)</h3>
+<p>Las vistas se hicieron con plantillas ERB de Rails. El formulario es un parcial
+(<code>_form.html.erb</code>) que se reutiliza para crear y para editar. Eliminar pide
+confirmación antes de borrar.</p>
+<table>
+  <tr><th>Ruta</th><th>Vista</th><th>Operación</th></tr>
+  <tr><td>/ o /products</td><td>index: tabla con todos los productos y botones Editar / Eliminar</td><td>Leer</td></tr>
+  <tr><td>/products/new</td><td>new: formulario vacío</td><td>Crear</td></tr>
+  <tr><td>/products/:id</td><td>show: detalle de un producto</td><td>Leer</td></tr>
+  <tr><td>/products/:id/edit</td><td>edit: formulario con los datos actuales</td><td>Actualizar</td></tr>
+</table>
+<p>Cuando los datos no son válidos, el formulario se vuelve a mostrar con los errores en
+español y los campos marcados en rojo (Rails traduce los mensajes con
+<code>config/locales/es.yml</code>). Si se intenta ver, editar o eliminar un producto que no
+existe, se regresa al listado con un mensaje de error.</p>
+<p><b>Figura 1.</b> Listado de productos.</p>
+<img src="img/listado.jpg" alt="Listado de productos" style="width:100%;border:1px solid #d9dce5;border-radius:4px">
+<p style="page-break-before: always;"><b>Figura 2.</b> Formulario de edición con errores de validación.</p>
+<img src="img/errores.jpg" alt="Formulario con errores de validación" style="width:100%;border:1px solid #d9dce5;border-radius:4px">
+
+<h3>2.4 API REST (JSON)</h3>
+<p>Las mismas operaciones también están disponibles como API, bajo el prefijo <code>/api</code>:</p>
+<table>
+  <tr><th>Método</th><th>Ruta</th><th>Acción</th><th>Respuesta exitosa</th><th>Respuesta de error</th></tr>
+  <tr><td>GET</td><td>/api/products</td><td>Listar</td><td>200</td><td>–</td></tr>
+  <tr><td>GET</td><td>/api/products/:id</td><td>Ver uno</td><td>200</td><td>404</td></tr>
+  <tr><td>POST</td><td>/api/products</td><td>Crear</td><td>201</td><td>422</td></tr>
+  <tr><td>PATCH</td><td>/api/products/:id</td><td>Actualizar</td><td>200</td><td>404 / 422</td></tr>
+  <tr><td>DELETE</td><td>/api/products/:id</td><td>Eliminar</td><td>204</td><td>404</td></tr>
+</table>
+<p>Ejemplo de uso:</p>
+<pre>curl -X POST http://localhost:3000/api/products -H "Content-Type: application/json" \
+     -d '{"product":{"nombre":"Teclado","descripcion":"Mecánico","precio":150000,"cantidad":10}}'
+
+→ 201 Created
+{"id":1,"nombre":"Teclado","descripcion":"Mecánico","precio":150000.0,"cantidad":10}
+
+curl http://localhost:3000/api/products/99
+→ 404 Not Found
+{"error":"No existe un producto con id 99"}</pre>
+
+<h2>3. Pruebas unitarias</h2>
+<p>Se usó <b>Minitest</b>, el framework de pruebas incluido en Rails. Hay tres archivos: uno
+prueba directamente la lógica del CRUD (pruebas unitarias), otro prueba las páginas HTML y otro
+los endpoints de la API. Cada operación tiene
+al menos un caso exitoso y uno de error. Las pruebas usan un archivo JSON temporal para no
+afectar los datos reales.</p>
+<table>
+  <tr><th>Operación</th><th>Caso exitoso</th><th>Caso de error</th></tr>
+  <tr><td>Crear</td><td>Guarda el producto y asigna ids 1, 2…</td><td>Falta nombre/precio; precio o cantidad negativos</td></tr>
+  <tr><td>Leer</td><td>Encuentra por id; lista vacía al inicio</td><td>Buscar id inexistente (999)</td></tr>
+  <tr><td>Actualizar</td><td>Cambia solo precio y cantidad</td><td>Id inexistente; nombre vacío (no modifica el dato)</td></tr>
+  <tr><td>Eliminar</td><td>Borra el producto; ids no se reutilizan</td><td>Eliminar id inexistente</td></tr>
+</table>
+<pre>test "actualizar: falla si el producto no existe" do
+  assert_raises(ProductRepository::NotFound) { @repo.update(999, nombre: "X") }
+end
+
+test "eliminar: falla si el producto no existe" do
+  assert_raises(ProductRepository::NotFound) { @repo.delete(999) }
+end</pre>
+<p>Resultado de la ejecución con <code>bin/rails test</code>:</p>
+<pre>Running:
+...................................
+Line coverage: 138 / 138 (100.00%)
+Branch coverage: 14 / 16 (87.50%)
+
+35 runs, 95 assertions, 0 failures, 0 errors, 0 skips</pre>
+<p>Ejemplo de prueba de una vista (crear con datos inválidos):</p>
+<pre>test "crear con datos inválidos muestra los errores en español" do
+  post products_url, params: { product: { nombre: "", precio: "-5", cantidad: "1" } }
+  assert_response :unprocessable_content
+  assert_select ".errors li", /Nombre no puede estar vacío/
+end</pre>
+<div class="box">[Insertar captura de pantalla de la terminal con las pruebas en verde]</div>
+
+<h2>4. Prueba de calidad con SonarQube</h2>
+<p>SonarQube es una plataforma de inspección continua que analiza el código fuente para
+detectar bugs, vulnerabilidades, <i>code smells</i>, duplicación y mide la cobertura de pruebas.
+Se configuró el archivo <code>sonar-project.properties</code>:</p>
+<pre>sonar.projectKey=crud-productos-rails
+sonar.projectName=CRUD Productos (Ruby on Rails)
+sonar.sources=app,config,lib
+sonar.tests=test
+sonar.ruby.coverage.reportPaths=coverage/.resultset.json</pre>
+<p>Pasos realizados:</p>
+<ol>
+  <li>Levantar SonarQube: <code>docker run -d --name sonarqube -p 9000:9000 sonarqube:community</code></li>
+  <li>Ingresar a <code>http://localhost:9000</code>, crear el proyecto local <code>crud-productos-rails</code> y generar un token.</li>
+  <li>Ejecutar <code>bin/rails test</code> para generar el reporte de cobertura con SimpleCov.</li>
+  <li>Ejecutar el analizador <code>sonar-scanner</code> desde la carpeta del proyecto.</li>
+</ol>
+<p>Resultados obtenidos:</p>
+<table>
+  <tr><th>Métrica</th><th>Resultado</th></tr>
+  <tr><td>Quality Gate</td><td><span class="todo">[Passed / Failed]</span></td></tr>
+  <tr><td>Bugs</td><td><span class="todo">[ ]</span></td></tr>
+  <tr><td>Vulnerabilidades</td><td><span class="todo">[ ]</span></td></tr>
+  <tr><td>Code smells</td><td><span class="todo">[ ]</span></td></tr>
+  <tr><td>Cobertura</td><td><span class="todo">[ ]</span></td></tr>
+  <tr><td>Duplicación</td><td><span class="todo">[ ]</span></td></tr>
+</table>
+<div class="box">[Insertar captura del panel del proyecto en SonarQube]</div>
+
+<h2>5. Publicación en GitHub</h2>
+<p>El código se versionó con Git y se publicó en GitHub. El archivo <code>.gitignore</code>
+excluye la llave <code>config/master.key</code>, los datos locales, los logs y el reporte de
+cobertura.</p>
+<pre>git init
+git add .
+git commit -m "CRUD de productos con Rails, pruebas y configuración de SonarQube"
+git branch -M main
+git remote add origin https://github.com/luisito1520/crud-productos-rails.git
+git push -u origin main</pre>
+<p>Luego se compartió el repositorio con el docente desde <i>Settings → Collaborators → Add people</i>.</p>
+<p>Enlace del repositorio: https://github.com/luisito1520/crud-productos-rails</p>
+<div class="box">[Insertar captura del repositorio en GitHub]</div>
+
+<h2>Conclusiones</h2>
+<ul>
+  <li>Rails permite construir una aplicación web completa, con vistas HTML y una API REST, con poco código siguiendo convenciones (rutas <code>resources</code>, controladores, plantillas ERB y respuestas JSON).</li>
+  <li>Al compartir el mismo repositorio entre las vistas y la API, las reglas de negocio (validaciones, ids únicos) se escriben una sola vez.</li>
+  <li>Separar la lógica del CRUD en un repositorio independiente del controlador facilitó escribir pruebas unitarias rápidas y alcanzar el 100&nbsp;% de cobertura de líneas.</li>
+  <li>Probar los casos de error (ids inexistentes, datos inválidos) es tan importante como los exitosos, porque garantiza que la API responda con códigos HTTP correctos (404, 422).</li>
+  <li>SonarQube complementa las pruebas al revisar la calidad y mantenibilidad del código, y GitHub permite versionar y compartir el trabajo.</li>
+</ul>
+</section>
+
+<!-- ================= BIBLIOGRAFÍA ================= -->
+<section class="bib" style="page-break-before: always;">
+<h2>Bibliografía</h2>
+<p>Rails Core Team. (2025). <i>Ruby on Rails Guides: Getting Started with Rails</i>. https://guides.rubyonrails.org/getting_started.html</p>
+<p>Rails Core Team. (2025). <i>Using Rails for API-only Applications</i>. https://guides.rubyonrails.org/api_app.html</p>
+<p>Rails Core Team. (2025). <i>Testing Rails Applications</i>. https://guides.rubyonrails.org/testing.html</p>
+<p>Rails Core Team. (2025). <i>Layouts and Rendering in Rails</i>. https://guides.rubyonrails.org/layouts_and_rendering.html</p>
+<p>Rails Core Team. (2025). <i>Action View Form Helpers</i>. https://guides.rubyonrails.org/form_helpers.html</p>
+<p>Rails Core Team. (2025). <i>Rails Internationalization (I18n) API</i>. https://guides.rubyonrails.org/i18n.html</p>
+<p>Rails Core Team. (2025). <i>Active Model Basics</i>. https://guides.rubyonrails.org/active_model_basics.html</p>
+<p>Ruby Community. (2025). <i>Documentación de Ruby</i>. https://www.ruby-lang.org/es/documentation/</p>
+<p>Seattle.rb. (2025). <i>Minitest</i>. https://github.com/minitest/minitest</p>
+<p>SimpleCov contributors. (2025). <i>SimpleCov: Code coverage for Ruby</i>. https://github.com/simplecov-ruby/simplecov</p>
+<p>SonarSource. (2025). <i>SonarQube Documentation: Ruby test coverage</i>. https://docs.sonarsource.com/sonarqube-server/</p>
+<p>GitHub. (2025). <i>GitHub Docs: Inviting collaborators to a personal repository</i>. https://docs.github.com/</p>
+<p>Fielding, R. T. (2000). <i>Architectural Styles and the Design of Network-based Software Architectures</i> (Tesis doctoral). University of California, Irvine.</p>
+</section>
+
+</body>
+</html>

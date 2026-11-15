@@ -1,0 +1,20 @@
+<% content_for :title, @product.nombre %>
+
+<h1><%= @product.nombre %></h1>
+
+<div class="card">
+  <dl>
+    <dt>ID</dt>          <dd><%= @product.id %></dd>
+    <dt>Nombre</dt>      <dd><%= @product.nombre %></dd>
+    <dt>Descripción</dt> <dd><%= @product.descripcion.presence || content_tag(:span, "Sin descripción", class: "muted") %></dd>
+    <dt>Precio</dt>      <dd><%= precio(@product.precio) %></dd>
+    <dt>Cantidad</dt>    <dd><%= @product.cantidad %> unidades</dd>
+  </dl>
+
+  <div class="actions">
+    <%= link_to "Editar", edit_product_path(@product.id), class: "btn btn-primary" %>
+    <%= button_to "Eliminar", product_path(@product.id), method: :delete, class: "btn btn-danger",
+          form: { onsubmit: "return confirm('¿Eliminar este producto?')" } %>
+    <%= link_to "Volver al listado", products_path, class: "btn" %>
+  </div>
+</div>
