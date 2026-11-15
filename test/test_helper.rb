@@ -1,8 +1,8 @@
-# Cobertura de código (la lee SonarQube desde coverage/.resultset.json).
+# Cobertura de código (la lee SonarQube desde coverage/coverage.json).
 require "simplecov"
-SimpleCov.start "rails" do
-  enable_coverage :branch
-end
+require "simplecov_json_formatter"
+SimpleCov.formatters = [SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::JSONFormatter]
+SimpleCov.start "rails"
 
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"

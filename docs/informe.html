@@ -228,8 +228,9 @@ end</pre>
 <p>Resultado de la ejecución con <code>bin/rails test</code>:</p>
 <pre>Running:
 ...................................
-Line coverage: 138 / 138 (100.00%)
-Branch coverage: 14 / 16 (87.50%)
+Coverage report generated for Minitest to coverage/index.html
+JSON Coverage report generated for Minitest to coverage/coverage.json
+Line coverage: 141 / 141 (100.00%)
 
 35 runs, 95 assertions, 0 failures, 0 errors, 0 skips</pre>
 <p>Ejemplo de prueba de una vista (crear con datos inválidos):</p>
@@ -248,24 +249,40 @@ Se configuró el archivo <code>sonar-project.properties</code>:</p>
 sonar.projectName=CRUD Productos (Ruby on Rails)
 sonar.sources=app,config,lib
 sonar.tests=test
-sonar.ruby.coverage.reportPaths=coverage/.resultset.json</pre>
+sonar.ruby.coverage.reportPaths=coverage/coverage.json
+sonar.coverage.exclusions=config/**</pre>
 <p>Pasos realizados:</p>
 <ol>
-  <li>Levantar SonarQube: <code>docker run -d --name sonarqube -p 9000:9000 sonarqube:community</code></li>
-  <li>Ingresar a <code>http://localhost:9000</code>, crear el proyecto local <code>crud-productos-rails</code> y generar un token.</li>
-  <li>Ejecutar <code>bin/rails test</code> para generar el reporte de cobertura con SimpleCov.</li>
-  <li>Ejecutar el analizador <code>sonar-scanner</code> desde la carpeta del proyecto.</li>
+  <li>Instalar el JDK 21 (Eclipse Temurin), requerido por el servidor de SonarQube.</li>
+  <li>Descargar <b>SonarQube Community Build 26.10</b> y <b>SonarScanner CLI 8.4</b> desde
+      binaries.sonarsource.com, y arrancar el servidor con
+      <code>bin\windows-x86-64\StartSonar.bat</code>.</li>
+  <li>Ingresar a <code>http://localhost:9000</code> (usuario <code>admin</code>), cambiar la
+      contraseña inicial y generar un <i>Global Analysis Token</i>.</li>
+  <li>Ejecutar <code>bin/rails test</code>, que genera el reporte de cobertura
+      <code>coverage/coverage.json</code> con el formateador JSON de SimpleCov (el formato
+      que lee el analizador de Ruby de SonarQube).</li>
+  <li>Ejecutar <code>sonar-scanner -Dsonar.host.url=http://localhost:9000</code> desde la
+      carpeta del proyecto, con el token en la variable de entorno <code>SONAR_TOKEN</code>.</li>
 </ol>
+<p>Los archivos de <code>config/</code> se excluyen solo del cálculo de cobertura porque son
+configuración de Rails y no lógica de la aplicación (SimpleCov tampoco los mide); se siguen
+analizando en busca de bugs y <i>code smells</i>.</p>
 <p>Resultados obtenidos:</p>
 <table>
   <tr><th>Métrica</th><th>Resultado</th></tr>
-  <tr><td>Quality Gate</td><td><span class="todo">[Passed / Failed]</span></td></tr>
-  <tr><td>Bugs</td><td><span class="todo">[ ]</span></td></tr>
-  <tr><td>Vulnerabilidades</td><td><span class="todo">[ ]</span></td></tr>
-  <tr><td>Code smells</td><td><span class="todo">[ ]</span></td></tr>
-  <tr><td>Cobertura</td><td><span class="todo">[ ]</span></td></tr>
-  <tr><td>Duplicación</td><td><span class="todo">[ ]</span></td></tr>
+  <tr><td>Quality Gate</td><td><b>Passed</b></td></tr>
+  <tr><td>Bugs (Reliability)</td><td>0 – calificación A</td></tr>
+  <tr><td>Vulnerabilidades (Security)</td><td>0 – calificación A</td></tr>
+  <tr><td>Security hotspots</td><td>0</td></tr>
+  <tr><td>Code smells (Maintainability)</td><td>0 – calificación A (deuda técnica: 0 min)</td></tr>
+  <tr><td>Cobertura de pruebas</td><td>100,0 %</td></tr>
+  <tr><td>Duplicación</td><td>0,0 %</td></tr>
+  <tr><td>Líneas de código analizadas</td><td>471</td></tr>
 </table>
+<p>Durante el análisis se corrigió un problema: en el primer intento SonarQube no podía leer
+la cobertura porque SimpleCov la guardaba en el formato <code>.resultset.json</code>. Se
+configuró el formateador JSON de SimpleCov y SonarQube pasó a leer la cobertura correctamente.</p>
 <div class="box">[Insertar captura del panel del proyecto en SonarQube]</div>
 
 <h2>5. Publicación en GitHub</h2>
